@@ -13,6 +13,7 @@ import (
 type Server struct {
 	Handler http.Handler
 	Opts    *Options
+        ErrorLog *log.Logger
 }
 
 // ListenAndServe will serve traffic on HTTP or HTTPS depending on TLS options
@@ -90,7 +91,7 @@ func (s *Server) ServeHTTP() {
 	}
 	log.Printf("HTTP: listening on %s", listenAddr)
 
-	server := &http.Server{Handler: s.Handler}
+	server := &http.Server{Handler: s.Handler, ErrorLog: s.ErrorLog}
 	err = server.Serve(listener)
 	if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
 		log.Printf("ERROR: http.Serve() - %s", err)
@@ -124,7 +125,7 @@ func (s *Server) ServeHTTPS() {
 	log.Printf("HTTPS: listening on %s", ln.Addr())
 
 	tlsListener := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, config)
-	srv := &http.Server{Handler: s.Handler}
+	srv := &http.Server{Handler: s.Handler, ErrorLog: s.ErrorLog}
 	err = srv.Serve(tlsListener)
 
 	if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {

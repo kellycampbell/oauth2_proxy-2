@@ -12,11 +12,17 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/sirupsen/logrus"
 	options "github.com/mreiferson/go-options"
+)
+
+var (
+	logger *logrus.Entry
 )
 
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+	logger = logrus.StandardLogger().WithFields(logrus.Fields{})
 	flagSet := flag.NewFlagSet("oauth2_proxy", flag.ExitOnError)
 
 	emailDomains := StringArray{}
@@ -142,6 +148,7 @@ func main() {
 	}
 
 	rand.Seed(time.Now().UnixNano())
+	var httpServerLogger = log.New(logger.WriterLevel(logrus.DebugLevel), "", 0)
 
 	var handler http.Handler
 	if opts.GCPHealthChecks {
@@ -152,6 +159,7 @@ func main() {
 	s := &Server{
 		Handler: handler,
 		Opts:    opts,
+		ErrorLog: httpServerLogger,
 	}
 	s.ListenAndServe()
 }
