@@ -6,10 +6,12 @@ RUN chmod +x $GOPATH/bin/dep
 
 # Copy sources
 WORKDIR $GOPATH/src/github.com/pusher/oauth2_proxy
-COPY . .
 
 # Fetch dependencies
+COPY Gopkg.toml Gopkg.lock ./
 RUN dep ensure --vendor-only
+
+COPY . .
 
 # Build binary and make sure there is at least an empty key file.
 #  This is useful for GCP App Engine custom runtime builds, because

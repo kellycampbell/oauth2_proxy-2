@@ -106,6 +106,7 @@ type UpstreamProxy struct {
 // ServeHTTP proxies requests to the upstream provider while signing the
 // request headers
 func (u *UpstreamProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// log.Printf("ServeHTTP: req = %v", r)
 	w.Header().Set("GAP-Upstream-Address", u.upstream)
 	if u.auth != nil {
 		r.Header.Set("GAP-Auth", w.Header().Get("GAP-Auth"))
@@ -922,10 +923,16 @@ func (p *OAuthProxy) Authenticate(rw http.ResponseWriter, req *http.Request) int
 		req.Header["X-Forwarded-Access-Token"] = []string{session.AccessToken}
 	}
 	if p.PassAuthorization && session.IDToken != "" {
+		// log.Printf("passing IDToken for Authorization: %s", session.IDToken)
 		req.Header["Authorization"] = []string{fmt.Sprintf("Bearer %s", session.IDToken)}
+		// } else {
+		// 	log.Printf("Not passing IDToken for Authorization: p.PassAuthorization = %v session.IDToken = %s", p.PassAuthorization, session.IDToken)
 	}
 	if p.SetAuthorization && session.IDToken != "" {
+		// log.Printf("setting IDToken for Authorization: %s", session.IDToken)
 		rw.Header().Set("Authorization", fmt.Sprintf("Bearer %s", session.IDToken))
+		// } else {
+		// 	log.Printf("Not setting IDToken for Authorization: p.SetAuthorization = %v session.IDToken = %s", p.SetAuthorization, session.IDToken)
 	}
 	if session.Email == "" {
 		rw.Header().Set("GAP-Auth", session.User)

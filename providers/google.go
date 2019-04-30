@@ -32,6 +32,7 @@ type GoogleProvider struct {
 // NewGoogleProvider initiates a new GoogleProvider
 func NewGoogleProvider(p *ProviderData) *GoogleProvider {
 	p.ProviderName = "Google"
+	// log.Printf("Google provider. LoginURL = %s", p.LoginURL)
 	if p.LoginURL.String() == "" {
 		p.LoginURL = &url.URL{Scheme: "https",
 			Host: "accounts.google.com",
@@ -127,6 +128,8 @@ func (p *GoogleProvider) Redeem(redirectURL, code string) (s *SessionState, err 
 		err = fmt.Errorf("got %d from %q %s", resp.StatusCode, p.RedeemURL.String(), body)
 		return
 	}
+	// log.Printf("Oauth request params = %s", bytes.NewBufferString(params.Encode()))
+	// log.Printf("Oauth result body = %s", body)
 
 	var jsonResponse struct {
 		AccessToken  string `json:"access_token"`
@@ -260,6 +263,8 @@ func (p *GoogleProvider) RefreshSessionIfNeeded(s *SessionState) (bool, error) {
 		return false, nil
 	}
 
+	log.Printf("refreshing session for user: %v", s.User)
+
 	newToken, newIDToken, duration, err := p.redeemRefreshToken(s.RefreshToken)
 	if err != nil {
 		return false, err
@@ -292,6 +297,8 @@ func (p *GoogleProvider) redeemRefreshToken(refreshToken string) (token string, 
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
+	// log.Printf("Using RefreshToken")
+
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return
@@ -305,6 +312,8 @@ func (p *GoogleProvider) redeemRefreshToken(refreshToken string) (token string, 
 
 	if resp.StatusCode != 200 {
 		err = fmt.Errorf("got %d from %q %s", resp.StatusCode, p.RedeemURL.String(), body)
+		log.Printf("error refreshing token for user: %v", err)
+
 		return
 	}
 
