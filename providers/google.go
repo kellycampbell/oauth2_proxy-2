@@ -32,20 +32,34 @@ type GoogleProvider struct {
 // NewGoogleProvider initiates a new GoogleProvider
 func NewGoogleProvider(p *ProviderData) *GoogleProvider {
 	p.ProviderName = "Google"
-	// log.Printf("Google provider. LoginURL = %s", p.LoginURL)
+	log.Printf("Google provider. LoginURL = %s", p.LoginURL)
 	if p.LoginURL.String() == "" {
+		// https://github.com/kubernetes/kubernetes/issues/65317
 		p.LoginURL = &url.URL{Scheme: "https",
 			Host: "accounts.google.com",
 			Path: "/o/oauth2/auth",
 			// to get a refresh token. see https://developers.google.com/identity/protocols/OAuth2WebServer#offline
 			RawQuery: "access_type=offline",
 		}
+		// p.LoginURL = &url.URL{Scheme: "https",
+		// 	Host: "accounts.google.com",
+		// 	Path: "/o/oauth2/v2/auth",
+		// 	// to get a refresh token. see https://developers.google.com/identity/protocols/OAuth2WebServer#offline
+		// 	RawQuery: "access_type=offline",
+		// }
 	}
 	if p.RedeemURL.String() == "" {
+		// https://developers.google.com/identity/protocols/OpenIDConnect#exchangecode
 		p.RedeemURL = &url.URL{Scheme: "https",
 			Host: "www.googleapis.com",
-			Path: "/oauth2/v3/token"}
+			Path: "/oauth2/v4/token"}
 	}
+	// if p.RedeemURL.String() == "" {
+	// 	// https://developers.google.com/identity/protocols/OpenIDConnect#exchangecode
+	// 	p.RedeemURL = &url.URL{Scheme: "https",
+	// 		Host: "www.googleapis.com",
+	// 		Path: "/oauth2/v3/token"}
+	// }
 	if p.ValidateURL.String() == "" {
 		p.ValidateURL = &url.URL{Scheme: "https",
 			Host: "www.googleapis.com",
@@ -147,9 +161,10 @@ func (p *GoogleProvider) Redeem(redirectURL, code string) (s *SessionState, err 
 		return
 	}
 	s = &SessionState{
-		AccessToken:  jsonResponse.AccessToken,
-		IDToken:      jsonResponse.IDToken,
-		ExpiresOn:    time.Now().Add(time.Duration(jsonResponse.ExpiresIn) * time.Second).Truncate(time.Second),
+		AccessToken: jsonResponse.AccessToken,
+		IDToken:     jsonResponse.IDToken,
+		// ExpiresOn:    time.Now().Add(time.Duration(jsonResponse.ExpiresIn) * time.Second).Truncate(time.Second),
+		ExpiresOn:    time.Now().Add(time.Duration(180) * time.Second).Truncate(time.Second),
 		RefreshToken: jsonResponse.RefreshToken,
 		Email:        email,
 	}
@@ -259,7 +274,12 @@ func (p *GoogleProvider) ValidateGroup(email string) bool {
 // RefreshSessionIfNeeded checks if the session has expired and uses the
 // RefreshToken to fetch a new ID token if required
 func (p *GoogleProvider) RefreshSessionIfNeeded(s *SessionState) (bool, error) {
-	if s == nil || s.ExpiresOn.After(time.Now()) || s.RefreshToken == "" {
+	if s == nil || s.ExpiresOn.After(time.Now()) {
+		// log.Printf("session doesn't need refreshed")
+		return false, nil
+	}
+	if s.RefreshToken == "" {
+		// log.Printf("refresh token is empty")
 		return false, nil
 	}
 
@@ -279,7 +299,7 @@ func (p *GoogleProvider) RefreshSessionIfNeeded(s *SessionState) (bool, error) {
 	s.AccessToken = newToken
 	s.IDToken = newIDToken
 	s.ExpiresOn = time.Now().Add(duration).Truncate(time.Second)
-	log.Printf("refreshed access token %s (expired on %s)", s, origExpiration)
+	log.Printf("refreshed access token (expired on %s)", origExpiration)
 	return true, nil
 }
 
@@ -329,5 +349,6 @@ func (p *GoogleProvider) redeemRefreshToken(refreshToken string) (token string, 
 	token = data.AccessToken
 	idToken = data.IDToken
 	expires = time.Duration(data.ExpiresIn) * time.Second
+	log.Printf("Token refreshed successfully")
 	return
 }

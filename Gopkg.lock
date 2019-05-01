@@ -165,7 +165,7 @@
     "jwt",
   ]
   pruneopts = ""
-  revision = "9ff8ebcc8e241d46f52ecc5bff0e5a2f2dbef402"
+  revision = "9f3314589c9a9136388751d9adae6b0ed400978a"
 
 [[projects]]
   branch = "master"
